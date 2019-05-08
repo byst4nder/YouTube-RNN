@@ -1,3 +1,12 @@
+# Youtube-RNN ignore
+datasets/*
+!datasets/example.txt
+
+# Checkpoints
+training_checkpoints/
+
+# Python ignore
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
