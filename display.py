@@ -8,7 +8,7 @@ import numpy as np
 import tensorflow as tf
 
 # Load the dataset and decode it to txt
-text = open("dataset.txt", 'rb').read().decode(encoding="utf-8")
+text = open("datasets/example.txt", 'rb').read().decode(encoding="utf-8")
 
 # Get all unique characters in a list
 vocab = sorted(set(text))
