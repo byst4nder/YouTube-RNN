@@ -7,11 +7,10 @@ import datetime
 import numpy as np
 import tensorflow as tf
 
-# Load the episode length
-ep_length = int(open("ep_length.txt", 'rb').read().decode(encoding="utf-8"))
 
+# Create a dataset selector by referencing all files in 'datasets' folder
 # Load the dataset and decode it to txt
-text = open("dataset.txt", 'rb').read().decode(encoding="utf-8")
+text = open("datasets/example.txt", 'rb').read().decode(encoding="utf-8")
 
 print("Text Length:\t{}".format(len(text)))
 
@@ -62,7 +61,11 @@ def build_model(vocab_size, embedding_dim, rnn_units, batch_size):
   model = tf.keras.Sequential([
     tf.keras.layers.Embedding(vocab_size, embedding_dim,
                               batch_input_shape=[batch_size, None]),
-    tf.keras.layers.LSTM(rnn_units,
+    tf.keras.layers.GRU(rnn_units,
+                        return_sequences=True,
+                        stateful=True,
+                        recurrent_initializer='glorot_uniform'),
+    tf.keras.layers.GRU(rnn_units // 2,
                         return_sequences=True,
                         stateful=True,
                         recurrent_initializer='glorot_uniform'),
@@ -88,8 +91,6 @@ sampled_indices = tf.squeeze(sampled_indices,axis=-1).numpy()
 def loss(labels, logits):
   return tf.keras.losses.sparse_categorical_crossentropy(labels, logits, from_logits=True)
 
-example_batch_loss  = loss(target_example_batch, example_batch_predictions)
-
 model.compile(optimizer='adam', loss=loss)
 
 # Directory where the checkpoints will be saved
@@ -101,41 +102,14 @@ checkpoint_callback=tf.keras.callbacks.ModelCheckpoint(
     filepath=checkpoint_prefix,
     save_weights_only=True)
 
-
-# Load previous checkpoint if needed
-response = input("Load load weights from checkpoint? (y/n): ").lower()
-
-if response == 'y':
-  model.load_weights(tf.train.latest_checkpoint(checkpoint_dir))
-else:
-  pass
+# load last checkpoint
+# model.load_weights(tf.train.latest_checkpoint(checkpoint_dir))
 
 # Set how many epochs to complete
-try:
-  EPOCHS = int(input("How many epochs should I do?"))
-except:
-  print("You fucked up somehow so I'll only do 1")
-  EPOCHS = 1
+EPOCHS = 100
 
-# Training time!
-while True:
-  history = model.fit(dataset, epochs=EPOCHS, callbacks=[checkpoint_callback])
-  print("Keep Training?")
-  response = input("(Y/N): ").lower()
-
-  if response == 'y':
-    try:
-      EPOCHS = int(input("How many epochs should I do?"))
-    except:
-      print("You fucked up somehow so I'll only do 1")
-      EPOCHS = 1
-    continue
-  elif response == 'n':
-    break
-  else:
-    print("Invalid response, training another epoch anyways")
-    continue
-
+# Train the model
+history = model.fit(dataset, epochs=EPOCHS, callbacks=[checkpoint_callback])
 
 # Build the model
 model = build_model(vocab_size, embedding_dim, rnn_units, batch_size=1)
