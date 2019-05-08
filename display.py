@@ -7,18 +7,11 @@ import datetime
 import numpy as np
 import tensorflow as tf
 
-# Load the episode length
-ep_length = int(open("ep_length.txt", 'rb').read().decode(encoding="utf-8"))
-
 # Load the dataset and decode it to txt
 text = open("dataset.txt", 'rb').read().decode(encoding="utf-8")
 
-print("Text Length:\t{}".format(len(text)))
-
 # Get all unique characters in a list
 vocab = sorted(set(text))
-
-print("Unique Characters:\t{}".format(len(vocab)))
 
 # Correlate the vocab list to an int (char:int)
 char2idx = {u:i for i, u in enumerate(vocab)}
@@ -62,7 +55,11 @@ def build_model(vocab_size, embedding_dim, rnn_units, batch_size):
   model = tf.keras.Sequential([
     tf.keras.layers.Embedding(vocab_size, embedding_dim,
                               batch_input_shape=[batch_size, None]),
-    tf.keras.layers.LSTM(rnn_units,
+    tf.keras.layers.GRU(rnn_units,
+                        return_sequences=True,
+                        stateful=True,
+                        recurrent_initializer='glorot_uniform'),
+    tf.keras.layers.GRU(rnn_units // 2,
                         return_sequences=True,
                         stateful=True,
                         recurrent_initializer='glorot_uniform'),
@@ -78,7 +75,6 @@ model = build_model(
 
 for input_example_batch, target_example_batch in dataset.take(1):
   example_batch_predictions = model(input_example_batch)
-  print(example_batch_predictions.shape, "# (batch_size, sequence_length, vocab_size)")
 
 model.summary()
 
@@ -88,11 +84,10 @@ sampled_indices = tf.squeeze(sampled_indices,axis=-1).numpy()
 def loss(labels, logits):
   return tf.keras.losses.sparse_categorical_crossentropy(labels, logits, from_logits=True)
 
-example_batch_loss  = loss(target_example_batch, example_batch_predictions)
+example_batch_loss = loss(target_example_batch, example_batch_predictions)
 
-model.compile(optimizer='adam', loss=loss)
+# model.compile(optimizer='adam', loss=loss)
 
-# Directory where the checkpoints will be saved
 checkpoint_dir = './training_checkpoints'
 
 model = build_model(vocab_size, embedding_dim, rnn_units, batch_size=1)
